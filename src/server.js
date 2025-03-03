@@ -28,6 +28,7 @@ const authRoutes = require("./routes/auth.Routes");
 const movieRoutes = require("./routes/movie.Routes");
 const ticketRoutes = require("./routes/ticket.Routes");
 const paymentRoutes = require("./routes/paymet.Routes");
+
 // const swaggerSpec = require("./config/swager");
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -47,6 +48,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/wishlist", require("./routes/wishlist.Routes"));
 app.get("/", (req, res) => {
   res.send("🎬 Movie App API ishlayapti! 🚀");
 });

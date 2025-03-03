@@ -20,6 +20,7 @@ const movieSchema = new mongoose.Schema({
     },
   ],
   createdAt: { type: Date, default: Date.now },
+  ticketPrice: { type: Number, required: true },
 });
 
 const Movie = mongoose.model("Movie", movieSchema);

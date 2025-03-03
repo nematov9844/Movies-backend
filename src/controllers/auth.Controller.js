@@ -10,7 +10,7 @@ const registerUser = async (req, res) => {
   
     try {
       let user = await User.findOne({ email });
-  
+
       if (user) {
         return res.status(400).json({ message: "Bu email allaqachon ishlatilgan" });
       }
@@ -30,7 +30,8 @@ const registerUser = async (req, res) => {
       }
   
       const verifyToken = crypto.randomBytes(32).toString("hex");
-  
+      console.log("Yangi verifyToken:", verifyToken);
+      
       user = await User.create({
         name,
         email,
@@ -40,7 +41,8 @@ const registerUser = async (req, res) => {
         verifyToken,
         isVerified: provider === "google" ? true : false,
       });
-  
+      console.log("Bazaga saqlangan token:", user.verifyToken);
+
       if (provider !== "google") {
         const verifyLink = `${process.env.BACKEND_URL || "http://localhost:5000"}/api/auth/verify-email/${verifyToken}`;
         const emailContent = `
@@ -102,5 +104,24 @@ const loginUser = async (req, res) => {
     res.status(500).json({ message: "Server xatosi", error });
   }
 };
+const verifyEmail = async (req, res) => {
+  const { token } = req.params;
 
-module.exports = { registerUser, loginUser };
+  try {
+    const user = await User.findOne({ verifyToken: token });
+    console.log(user);
+    if (!user) {
+      return res.status(400).json({ message: "Tasdiqlash tokeni noto‘g‘ri yoki muddati tugagan!" });
+    }
+
+    // Email tasdiqlandi
+    user.isVerified = true;
+    user.verifyToken = null;
+    await user.save();
+// c9007b706f5beb3a90eef99fdcdc1741767e584a46b4274153629bfe2660de75
+    res.json({ message: "Email muvaffaqiyatli tasdiqlandi! Endi tizimga kirishingiz mumkin." });
+  } catch (error) {
+    res.status(500).json({ message: "Server xatosi", error });
+  }
+};
+module.exports = { registerUser, loginUser, verifyEmail };

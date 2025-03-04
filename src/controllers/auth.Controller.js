@@ -44,7 +44,7 @@ const registerUser = async (req, res) => {
       console.log("Bazaga saqlangan token:", user.verifyToken);
 
       if (provider !== "google") {
-        const verifyLink = `${process.env.BACKEND_URL || "http://localhost:5000"}/api/auth/verify-email/${verifyToken}`;
+        const verifyLink = `${process.env.BACKEND_URL || "https://movies-backend-sph7.onrender.com"}/api/auth/verify-email/${verifyToken}`;
         const emailContent = `
           <html>
             <head>
@@ -118,7 +118,7 @@ const verifyEmail = async (req, res) => {
     user.isVerified = true;
     user.verifyToken = null;
     await user.save();
-// c9007b706f5beb3a90eef99fdcdc1741767e584a46b4274153629bfe2660de75
+
     res.json({ message: "Email muvaffaqiyatli tasdiqlandi! Endi tizimga kirishingiz mumkin." });
   } catch (error) {
     res.status(500).json({ message: "Server xatosi", error });

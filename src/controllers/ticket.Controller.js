@@ -55,15 +55,37 @@ const stripeWebhook = async (req, res) => {
     if (event.type === "checkout.session.completed") {
       const { userId, movieId, seatNumber, price } = event.data.object.metadata;
 
+      console.log("✅ Webhook metadata:", userId, movieId, seatNumber, price);
+
+      // Userni bazadan topamiz
       const user = await User.findById(userId);
-      if (user) {
-        user.tickets.push({ movie: movieId, seatNumber, price, paymentStatus: "paid" });
-        await user.save();
-      }
+      if (!user) return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+
+      // **1. Ticket modelida yangi chipta yaratamiz**
+      const ticket = new Ticket({
+        user: userId,
+        movie: movieId,
+        seatNumber,
+        price,
+        status: "paid",
+      });
+      await ticket.save();
+      console.log("🎟️ Yangi Ticket yaratildi:", ticket);
+
+      // **2. User modeliga ham chipta qo‘shamiz**
+      user.tickets.push({
+        movie: movieId,
+        seatNumber,
+        price,
+        paymentStatus: "paid",
+      });
+      await user.save();
+      console.log("✅ Userga chipta qo‘shildi:", user.tickets);
     }
 
     res.json({ received: true });
   } catch (error) {
+    console.error("❌ Webhook xatosi:", error);
     res.status(400).json({ message: "Webhook xatosi", error });
   }
 };

@@ -19,7 +19,7 @@ const swaggerSpec = swaggerJsDoc({
       },
       servers: [
         {
-          url: "http://localhost:5000", // Serveringiz URL'i
+          url: "https://movies-backend-sph7.onrender.com", // Serveringiz URL'i
           description: "Development server",
         },
       ],
@@ -95,23 +95,14 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
 
     console.log("Event turi:", event.type);
 
-    // Har ikkala event turini ham qo'llab-quvvatlash
-    if (event.type === "checkout.session.completed" || event.type === "payment_intent.succeeded") {
-      const session = event.data.object;
-      console.log("To'lov ma'lumotlari:", session);
-      
-      // payment_intent va checkout.session uchun metadata'ni olish
-      let metadata;
-      if (event.type === "checkout.session.completed") {
-        metadata = session.metadata;
-      } else {
-        // payment_intent uchun metadata'ni olish
-        const paymentIntent = await stripe.paymentIntents.retrieve(session.id);
-        metadata = paymentIntent.metadata;
-      }
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object;
+      console.log("PaymentIntent:", paymentIntent);
 
+      // Metadata'ni to'g'ridan-to'g'ri PaymentIntent'dan olish
+      const metadata = paymentIntent.metadata;
       console.log("Metadata:", metadata);
-      
+
       if (!metadata || !metadata.userId || !metadata.movieId || !metadata.seatNumber || !metadata.price) {
         console.error("Metadata to'liq emas:", metadata);
         return res.status(400).json({ error: "Metadata to'liq emas" });
@@ -137,17 +128,18 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
           purchasedAt: new Date()
         };
 
-        if (!user.tickets) {
+        // Tickets array mavjud emasligini tekshirish
+        if (!Array.isArray(user.tickets)) {
           user.tickets = [];
         }
 
         user.tickets.push(newTicket);
-        console.log("Yangi chipta qo'shildi:", newTicket);
+        console.log("Yangi chipta qo'shilmoqda:", newTicket);
 
         const savedUser = await user.save();
         console.log("Foydalanuvchi saqlandi. Chiptalari soni:", savedUser.tickets.length);
 
-        res.json({ 
+        return res.json({ 
           received: true,
           message: "Chipta muvaffaqiyatli qo'shildi",
           ticketCount: savedUser.tickets.length
@@ -156,14 +148,14 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
         console.error("Database xatosi:", dbError);
         return res.status(500).json({ error: "Database xatosi", details: dbError.message });
       }
-    } else {
-      // Boshqa eventlar uchun
-      res.json({ received: true });
     }
+
+    // Boshqa eventlar uchun
+    res.json({ received: true });
 
   } catch (error) {
     console.error("Webhook xatosi:", error);
-    res.status(400).json({ 
+    return res.status(400).json({ 
       message: "Webhook xatosi", 
       error: error.message 
     });

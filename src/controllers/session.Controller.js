@@ -1,34 +1,137 @@
 const Session = require("../models/Session");
+const Movie = require("../models/Movie");
+const mongoose = require("mongoose");
 
-// 🔹 Yangi seans qo‘shish
+// 🔹 Yangi seans qo'shish
 const createSession = async (req, res) => {
   try {
-    const session = new Session(req.body);
-    await session.save();
-    res.status(201).json(session);
+    const { movieId, startTime, endTime, hall, price, seats } = req.body;
+
+    // Seatlarni generatsiya qilish
+    const availableSeats = seats.map(seatNumber => ({
+      number: seatNumber,
+      isBooked: false
+    }));
+
+    const session = await Session.create({
+      movie: movieId,
+      startTime,
+      endTime,
+      hall,
+      price,
+      availableSeats
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Seans muvaffaqiyatli yaratildi",
+      session
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Seans yaratishda xatolik:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server xatosi",
+      error: error.message 
+    });
   }
 };
 
 // 🔹 Barcha seanslarni olish
 const getAllSessions = async (req, res) => {
   try {
-    const sessions = await Session.find().populate("movie");
-    res.json(sessions);
+    const sessions = await Session.find()
+      .populate('movie', 'title duration posterUrl')
+      .sort({ startTime: 1 });
+
+    res.json({
+      success: true,
+      sessions
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Seanslarni olishda xatolik:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server xatosi",
+      error: error.message 
+    });
   }
 };
 
-// 🔹 Seansni ID bo‘yicha olish
+// 🔹 Seansni ID bo'yicha olish
 const getSessionById = async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id).populate("movie");
-    if (!session) return res.status(404).json({ error: "Seans topilmadi" });
-    res.json(session);
+    console.log("So'ralgan session ID:", req.params.id);
+
+    // ID validatsiyasi
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Noto'g'ri ID formati"
+      });
+    }
+
+    // Avval movie'ni tekshiramiz
+    const movie = await Movie.findById(req.params.id);
+    if (movie) {
+      // Agar bu movie ID bo'lsa, shu movie uchun barcha session'larni qaytaramiz
+      const sessions = await Session.find({ movie: req.params.id })
+        .populate({
+          path: 'movie',
+          select: 'title duration posterUrl genre description releaseDate'
+        })
+        .sort({ startTime: 1 });
+
+      return res.json({
+        success: true,
+        sessions
+      });
+    }
+
+    // Agar movie topilmasa, session sifatida qidiramiz
+    const session = await Session.findById(req.params.id)
+      .populate({
+        path: 'movie',
+        select: 'title duration posterUrl genre description releaseDate'
+      });
+
+    if (!session) {
+      console.log("Session topilmadi");
+      return res.status(404).json({ 
+        success: false,
+        message: "Seans topilmadi" 
+      });
+    }
+
+    // Session ma'lumotlarini formatlash
+    const formattedSession = {
+      _id: session._id,
+      movie: session.movie,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      hall: session.hall,
+      price: session.price,
+      availableSeats: session.availableSeats.map(seat => ({
+        number: seat.number,
+        isBooked: seat.isBooked
+      })),
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt
+    };
+
+    console.log("Formatlanagan session:", formattedSession);
+
+    res.json({
+      success: true,
+      session: formattedSession
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Session olishda xatolik:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server xatosi",
+      error: error.message 
+    });
   }
 };
 
@@ -46,12 +149,12 @@ const updateSession = async (req, res) => {
   }
 };
 
-// 🔹 Seansni o‘chirish
+// 🔹 Seansni o'chirish
 const deleteSession = async (req, res) => {
   try {
     const session = await Session.findByIdAndDelete(req.params.id);
     if (!session) return res.status(404).json({ error: "Seans topilmadi" });
-    res.json({ message: "Seans o‘chirildi" });
+    res.json({ message: "Seans o'chirildi" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

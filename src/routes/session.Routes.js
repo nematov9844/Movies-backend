@@ -1,6 +1,7 @@
 const express = require("express");
 const { createSession, getAllSessions, getSessionById, updateSession, deleteSession } = require("../controllers/session.Controller");
 const router = express.Router();
+const { protect, admin } = require("../middlewares/authMiddleware");
 /**
  * @swagger
  * tags:
@@ -14,42 +15,28 @@ const router = express.Router();
  *   post:
  *     summary: Yangi seans yaratish
  *     tags: [Sessions]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               movie:
- *                 type: string
- *                 description: Film ID
- *               hall:
- *                 type: string
- *                 description: Kino zal nomi
- *               date:
- *                 type: string
- *                 format: date
- *                 description: Seans sanasi
- *               time:
- *                 type: string
- *                 description: Seans vaqti
- *               price:
- *                 type: number
- *                 description: Chipta narxi
- *               availableSeats:
- *                 type: number
- *                 description: Mavjud joylar soni
- *               totalSeats:
- *                 type: number
- *                 description: Jami joylar soni
+ *             required:
+ *               - movieId
+ *               - startTime
+ *               - endTime
+ *               - hall
+ *               - price
+ *               - seats
  *     responses:
  *       201:
  *         description: Seans muvaffaqiyatli yaratildi
  *       400:
  *         description: Xatolik yuz berdi
  */
-router.post("/", createSession);
+router.post("/", protect, admin, createSession);
 
 /**
  * @swagger

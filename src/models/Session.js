@@ -1,14 +1,43 @@
 const mongoose = require("mongoose");
 
 const sessionSchema = new mongoose.Schema({
-  movie: { type: mongoose.Schema.Types.ObjectId, ref: "Movie", required: true }, // Filmga bog‘lanadi
-  hall: { type: String, required: true }, // Qaysi zalda bo‘lishi
-  date: { type: Date, required: true }, // Seans sanasi
-  time: { type: String, required: true }, // Seans vaqti (HH:mm formatida)
-  price: { type: Number, required: true }, // Chiptaning narxi
-  availableSeats: { type: Number, required: true }, // Qolgan joylar soni
-  totalSeats: { type: Number, required: true }, // Jami joylar soni
+  movie: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Movie",
+    required: true
+  },
+  startTime: {
+    type: Date,
+    required: true
+  },
+  endTime: {
+    type: Date,
+    required: true
+  },
+  hall: {
+    type: String,
+    required: true
+  },
+  price: {
+    type: Number,
+    required: true
+  },
+  availableSeats: [{
+    number: String,
+    isBooked: {
+      type: Boolean,
+      default: false
+    }
+  }]
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
-const Session = mongoose.model("Session", sessionSchema);
-module.exports = Session;
+// Virtual field uchun
+sessionSchema.virtual('duration').get(function() {
+  return Math.round((this.endTime - this.startTime) / (1000 * 60)); // Minutlarda
+});
+
+module.exports = mongoose.model("Session", sessionSchema);

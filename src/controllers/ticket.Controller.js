@@ -57,22 +57,9 @@ const stripeWebhook = async (req, res) => {
 
       console.log("✅ Webhook metadata:", userId, movieId, seatNumber, price);
 
-      // Userni bazadan topamiz
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
 
-      // **1. Ticket modelida yangi chipta yaratamiz**
-      const ticket = new Ticket({
-        user: userId,
-        movie: movieId,
-        seatNumber,
-        price,
-        status: "paid",
-      });
-      await ticket.save();
-      console.log("🎟️ Yangi Ticket yaratildi:", ticket);
-
-      // **2. User modeliga ham chipta qo'shamiz**
       user.tickets.push({
         movie: movieId,
         seatNumber,
@@ -148,5 +135,6 @@ const createCheckoutSession = async (req, res) => {
 
 module.exports = {
   createCheckoutSession,
-  buyTicket
+  buyTicket,
+  stripeWebhook
 };

@@ -1,7 +1,7 @@
 const express = require("express");
 const { createSession, getAllSessions, getSessionById, updateSession, deleteSession } = require("../controllers/session.Controller");
 const router = express.Router();
-const { protect, admin } = require("../middlewares/authMiddleware");
+const { protect, isAdmin } = require("../middlewares/authMiddleware");
 /**
  * @swagger
  * tags:
@@ -36,7 +36,7 @@ const { protect, admin } = require("../middlewares/authMiddleware");
  *       400:
  *         description: Xatolik yuz berdi
  */
-router.post("/", protect, admin, createSession);
+router.post("/", protect, isAdmin, createSession);
 
 /**
  * @swagger

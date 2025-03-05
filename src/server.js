@@ -62,7 +62,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Webhook route'ini alohida handle qilamiz
+// Webhook route'ini alohida handle qilamiz (boshqa middleware'lardan oldin)
 app.post("/webhook", express.raw({ type: 'application/json' }), stripeWebhookHandler);
 
 // Boshqa routelar uchun JSON parser

@@ -17,11 +17,26 @@ const swaggerSpec = swaggerJsDoc({
         version: "1.0.0",
         description: "Movie API uchun Swagger hujjati",
       },
+      servers: [
+        {
+          url: "http://localhost:5000", // Serveringiz URL'i
+          description: "Development server",
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
     },
-    apis: ["./routes/*.js"],
-  });
+    apis: ["./src/routes/*.js"], // Path to'g'rilanishi kerak
+});
   
-  // Swagger UI endpoint
+// Swagger UI endpoint
   
 // === ROUTES ===
 const authRoutes = require("./routes/auth.Routes");
@@ -33,7 +48,12 @@ const paymentRoutes = require("./routes/paymet.Routes");
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // === MIDDLEWARE'lar ===
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(cors({ 
+  origin: [process.env.FRONTEND_URL, "http://localhost:3000"],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

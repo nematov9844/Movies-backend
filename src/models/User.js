@@ -7,7 +7,10 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String }, // Google orqali kirgan foydalanuvchilar uchun
   avatar: { type: String },
   isVerified: { type: Boolean, default: false },
-  verifyToken: { type: String },
+  verifyToken: String,
+  verifyTokenExpiry: Date,  // Token muddati
+  passwordResetToken: String,
+  passwordResetExpiry: Date,
   tickets: [
     {
       movie: { type: mongoose.Schema.Types.ObjectId, ref: "Movie" },

@@ -29,8 +29,11 @@ const registerUser = async (req, res) => {
         hashedPassword = await hashPassword(password);
       }
   
+      // Token va uning muddatini yaratish
       const verifyToken = crypto.randomBytes(32).toString("hex");
-      console.log("Yangi verifyToken:", verifyToken);
+      console.log("Yaratilgan token:", verifyToken);
+      const verifyTokenExpiry = new Date();
+      verifyTokenExpiry.setHours(verifyTokenExpiry.getHours() + 24); // 24 soatlik muddat
       
       user = await User.create({
         name,
@@ -39,12 +42,13 @@ const registerUser = async (req, res) => {
         googleId,
         avatar,
         verifyToken,
+        verifyTokenExpiry, // Token muddatini saqlash
         isVerified: provider === "google" ? true : false,
       });
-      console.log("Bazaga saqlangan token:", user.verifyToken);
+      console.log("Yaratilgan user:", user);
 
       if (provider !== "google") {
-        const verifyLink = `${process.env.BACKEND_URL || "https://movies-backend-sph7.onrender.com"}/api/auth/verify-email/${verifyToken}`;
+        const verifyLink = `${process.env.FRONTEND_URL}/verify-email/${verifyToken}`;
         const emailContent = `
           <html>
             <head>
@@ -52,11 +56,21 @@ const registerUser = async (req, res) => {
             </head>
             <body style="text-align: center; padding: 50px;">
               <h2>Emailingizni tasdiqlang</h2>
+              <p>Hurmatli ${name},</p>
               <p>Hisobingizni faollashtirish uchun quyidagi tugmani bosing:</p>
               <a href="${verifyLink}" 
-                style="background-color: blue; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                style="background-color: #4CAF50; color: white; 
+                padding: 10px 20px; text-decoration: none; 
+                border-radius: 5px; display: inline-block; 
+                margin: 20px 0;">
                 Emailni Tasdiqlash
               </a>
+              <p style="color: #666; margin-top: 20px;">
+                Bu havola 24 soat davomida amal qiladi.
+              </p>
+              <p style="font-size: 12px; color: #999;">
+                Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xabarni e'tiborsiz qoldiring.
+              </p>
             </body>
           </html>
         `;
@@ -64,11 +78,19 @@ const registerUser = async (req, res) => {
         await sendEmail(email, "Email Tasdiqlash", emailContent);
       }
   
-      res.status(201).json({ message: "Ro‘yxatdan o‘tish muvaffaqiyatli yakunlandi! Emailingizni tekshiring." });
+      res.status(201).json({ 
+        success: true,
+        message: "Ro'yxatdan o'tish muvaffaqiyatli yakunlandi! Emailingizni tekshiring.",
+        verifyToken // Test uchun token qaytarilmoqda (production'da olib tashlash kerak)
+      });
     } catch (error) {
-      res.status(500).json({ message: "Server xatosi", error });
+      res.status(500).json({ 
+        success: false,
+        message: "Server xatosi", 
+        error: error.message 
+      });
     }
-  };
+};
   
 
 // === UNIVERSAL LOGIN (EMAIL YOKI GOOGLE) ===
@@ -92,7 +114,7 @@ const loginUser = async (req, res) => {
       // Oddiy login
       const isMatch = await comparePassword(password, user.password);
       if (!isMatch) {
-        return res.status(401).json({ message: "Noto‘g‘ri parol" });
+        return res.status(401).json({ message: "Noto'g'ri parol" });
       }
     }
 
@@ -106,22 +128,83 @@ const loginUser = async (req, res) => {
 };
 const verifyEmail = async (req, res) => {
   const { token } = req.params;
+  console.log("Kelgan token:", token);
 
   try {
+    // Avval token bilan foydalanuvchini topish
     const user = await User.findOne({ verifyToken: token });
-    console.log(user);
+    console.log("Topilgan user:", user);
+
     if (!user) {
-      return res.status(400).json({ message: "Tasdiqlash tokeni noto‘g‘ri yoki muddati tugagan!" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Tasdiqlash tokeni topilmadi!" 
+      });
+    }
+
+    // Token muddatini tekshirish
+    if (user.verifyTokenExpiry && user.verifyTokenExpiry < Date.now()) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Token muddati tugagan!" 
+      });
     }
 
     // Email tasdiqlandi
     user.isVerified = true;
-    user.verifyToken = null;
+    user.verifyToken = undefined;
+    user.verifyTokenExpiry = undefined;
     await user.save();
 
-    res.json({ message: "Email muvaffaqiyatli tasdiqlandi! Endi tizimga kirishingiz mumkin." });
+    // Avtomatik tizimga kirish
+    const jwtToken = generateToken(user._id);
+
+    res.json({ 
+      success: true,
+      message: "Email muvaffaqiyatli tasdiqlandi!",
+      token: jwtToken,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: true
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server xatosi", error });
+    console.error("Verify xatosi:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server xatosi", 
+      error: error.message 
+    });
   }
 };
-module.exports = { registerUser, loginUser, verifyEmail };
+
+// === FOYDALANUVCHI MA'LUMOTLARINI OLISH ===
+const getMe = async (req, res) => {
+  try {
+    // req.user middleware'dan keladi
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isVerified: user.isVerified,
+        isAdmin: user.isAdmin,
+        avatar: user.avatar,
+        tickets: user.tickets
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server xatosi", error: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, verifyEmail, getMe };

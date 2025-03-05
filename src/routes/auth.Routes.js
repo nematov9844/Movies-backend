@@ -1,5 +1,7 @@
 const express = require("express");
-const { registerUser, loginUser, verifyEmail } = require("../controllers/auth.Controller");
+const { registerUser, loginUser, verifyEmail, getMe } = require("../controllers/auth.Controller");
+const { protect } = require("../middlewares/authMiddleware");
+
 
 const router = express.Router();
 /**
@@ -93,5 +95,24 @@ router.post("/login", loginUser);
  *         description: "Noto‘g‘ri yoki muddati o‘tgan token"
  */
 router.get("/verify-email/:token", verifyEmail);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: "Foydalanuvchi ma'lumotlarini olish"
+ *     description: "Joriy foydalanuvchi ma'lumotlarini qaytaradi"
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "Foydalanuvchi ma'lumotlari muvaffaqiyatli qaytarildi"
+ *       401:
+ *         description: "Avtorizatsiya xatosi"
+ *       404:
+ *         description: "Foydalanuvchi topilmadi"
+ */
+router.get("/me", protect, getMe);
 
 module.exports = router;

@@ -61,28 +61,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(morgan("dev"));
-
-// === MongoDB ulash ===
-connectDB();
-
-// === API marshrutlari ===
-app.use("/api/auth", authRoutes);
-app.use("/api/movies", movieRoutes);
-app.use("/api/tickets", ticketRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/wishlist", require("./routes/wishlist.Routes"));
-app.use("/api/sessions", sessionRoutes);
-app.get("/", (req, res) => {
-  res.send("🎬 Movie App API ishlayapti! 🚀");
-});
-
-// === STRIPE WEBHOOK ===
-app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+// Webhook route uchun raw body kerak, shuning uchun uni alohida handle qilamiz
+app.post("/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
   console.log("Webhook boshlanishi");
 
@@ -160,6 +140,27 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       error: error.message 
     });
   }
+});
+
+// Boshqa routelar uchun JSON parser
+app.use(express.json());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan("dev"));
+
+// === MongoDB ulash ===
+connectDB();
+
+// === API marshrutlari ===
+app.use("/api/auth", authRoutes);
+app.use("/api/movies", movieRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/wishlist", require("./routes/wishlist.Routes"));
+app.use("/api/sessions", sessionRoutes);
+app.get("/", (req, res) => {
+  res.send("🎬 Movie App API ishlayapti! 🚀");
 });
 
 // === SERVERNI ISHGA TUSHIRISH ===

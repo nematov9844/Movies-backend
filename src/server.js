@@ -84,24 +84,67 @@ app.get("/", (req, res) => {
 // === STRIPE WEBHOOK ===
 app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   const sig = req.headers["stripe-signature"];
+  console.log("Webhook boshlanishi");
 
   try {
-    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    const event = stripe.webhooks.constructEvent(
+      req.body, 
+      sig, 
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+
+    console.log("Event turi:", event.type);
 
     if (event.type === "checkout.session.completed") {
-      const { userId, movieId, seatNumber, price } = event.data.object.metadata;
+      const session = event.data.object;
+      console.log("To'lov sessiyasi:", session);
+      
+      // Metadata'dan ma'lumotlarni olish
+      const { userId, movieId, seatNumber, price } = session.metadata;
+      console.log("Metadata:", { userId, movieId, seatNumber, price });
 
+      // User modelini import qilish
       const User = require("./models/User");
+      
+      // Foydalanuvchini topish
       const user = await User.findById(userId);
-      if (user) {
-        user.tickets.push({ movie: movieId, seatNumber, price, paymentStatus: "paid" });
-        await user.save();
+      console.log("Topilgan foydalanuvchi:", user);
+
+      if (!user) {
+        console.error("Foydalanuvchi topilmadi:", userId);
+        return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
       }
+
+      // Chipta qo'shish
+      const newTicket = {
+        movie: movieId,
+        seatNumber: seatNumber,
+        price: Number(price),
+        paymentStatus: "paid",
+        purchasedAt: new Date()
+      };
+
+      user.tickets.push(newTicket);
+      console.log("Yangi chipta qo'shildi:", newTicket);
+
+      // O'zgarishlarni saqlash
+      await user.save();
+      console.log("Foydalanuvchi saqlandi");
+
+      res.json({ 
+        received: true,
+        message: "Chipta muvaffaqiyatli qo'shildi"
+      });
+    } else {
+      res.json({ received: true });
     }
 
-    res.json({ received: true });
   } catch (error) {
-    res.status(400).json({ message: "Webhook xatosi", error });
+    console.error("Webhook xatosi:", error);
+    res.status(400).json({ 
+      message: "Webhook xatosi", 
+      error: error.message 
+    });
   }
 });
 

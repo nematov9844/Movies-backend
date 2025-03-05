@@ -97,43 +97,49 @@ const createCheckoutSession = async (req, res) => {
 
     console.log("Checkout ma'lumotlari:", { movieId, seatNumber, price, userId });
 
+    // Metadata obyektini yaratamiz
+    const metadata = {
+      userId: userId.toString(),
+      movieId: movieId.toString(),
+      seatNumber: seatNumber.toString(),
+      price: price.toString()
+    };
+
+    console.log("Metadata:", metadata);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      mode: 'payment',
+      // Payment Intent ma'lumotlarini qo'shamiz
       payment_intent_data: {
-        metadata: {
-          userId: userId.toString(),
-          movieId: movieId.toString(),
-          seatNumber: seatNumber.toString(),
-          price: price.toString()
-        }
+        metadata: metadata // Metadata payment intent'ga qo'shiladi
       },
       line_items: [{
         price_data: {
           currency: 'usd',
           product_data: {
             name: `Chipta: ${seatNumber}`,
+            metadata: metadata // Product ma'lumotlariga ham qo'shamiz
           },
           unit_amount: price * 100,
         },
         quantity: 1,
       }],
-      mode: 'payment',
+      metadata: metadata, // Session ma'lumotlariga ham qo'shamiz
       success_url: `${process.env.FRONTEND_URL}/tickets/success`,
       cancel_url: `${process.env.FRONTEND_URL}/tickets/cancel`,
-      metadata: {
-        userId: userId.toString(),
-        movieId: movieId.toString(),
-        seatNumber: seatNumber.toString(),
-        price: price.toString()
-      }
     });
 
     console.log("Yaratilgan session:", {
       id: session.id,
-      metadata: session.metadata
+      metadata: session.metadata,
+      payment_intent: session.payment_intent
     });
 
-    res.json({ sessionId: session.id });
+    res.json({ 
+      sessionId: session.id,
+      metadata: metadata // Response'da ham qaytaramiz
+    });
   } catch (error) {
     console.error("Checkout session xatosi:", error);
     res.status(500).json({ error: error.message });

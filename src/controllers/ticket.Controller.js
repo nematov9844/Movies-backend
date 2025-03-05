@@ -14,7 +14,7 @@ const buyTicket = async (req, res) => {
   
       const price = movie.ticketPrice; // Narxni kinodan olish
   
-      // Stripe to‘lov sessiyasi yaratish
+      // Stripe to'lov sessiyasi yaratish
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [
@@ -40,12 +40,12 @@ const buyTicket = async (req, res) => {
   
       res.json({ url: session.url });
     } catch (error) {
-      res.status(500).json({ message: "To‘lov jarayonida xatolik yuz berdi", error });
+      res.status(500).json({ message: "To'lov jarayonida xatolik yuz berdi", error });
     }
   };
   
 
-// === Stripe Webhook - To‘lov tasdiqlanganda chiptani saqlash ===
+// === Stripe Webhook - To'lov tasdiqlanganda chiptani saqlash ===
 const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
 
@@ -72,7 +72,7 @@ const stripeWebhook = async (req, res) => {
       await ticket.save();
       console.log("🎟️ Yangi Ticket yaratildi:", ticket);
 
-      // **2. User modeliga ham chipta qo‘shamiz**
+      // **2. User modeliga ham chipta qo'shamiz**
       user.tickets.push({
         movie: movieId,
         seatNumber,
@@ -80,7 +80,7 @@ const stripeWebhook = async (req, res) => {
         paymentStatus: "paid",
       });
       await user.save();
-      console.log("✅ Userga chipta qo‘shildi:", user.tickets);
+      console.log("✅ Userga chipta qo'shildi:", user.tickets);
     }
 
     res.json({ received: true });
@@ -146,4 +146,7 @@ const createCheckoutSession = async (req, res) => {
   }
 };
 
-module.exports = { buyTicket, stripeWebhook, createCheckoutSession };
+module.exports = {
+  createCheckoutSession,
+  buyTicket
+};

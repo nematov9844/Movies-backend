@@ -90,4 +90,54 @@ const stripeWebhook = async (req, res) => {
   }
 };
 
-module.exports = { buyTicket, stripeWebhook };
+const createCheckoutSession = async (req, res) => {
+  try {
+    const { movieId, seatNumber, price } = req.body;
+    const userId = req.user._id;
+
+    console.log("Checkout ma'lumotlari:", { movieId, seatNumber, price, userId });
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      payment_intent_data: {
+        metadata: {
+          userId: userId.toString(),
+          movieId: movieId.toString(),
+          seatNumber: seatNumber.toString(),
+          price: price.toString()
+        }
+      },
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Chipta: ${seatNumber}`,
+          },
+          unit_amount: price * 100,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/tickets/success`,
+      cancel_url: `${process.env.FRONTEND_URL}/tickets/cancel`,
+      metadata: {
+        userId: userId.toString(),
+        movieId: movieId.toString(),
+        seatNumber: seatNumber.toString(),
+        price: price.toString()
+      }
+    });
+
+    console.log("Yaratilgan session:", {
+      id: session.id,
+      metadata: session.metadata
+    });
+
+    res.json({ sessionId: session.id });
+  } catch (error) {
+    console.error("Checkout session xatosi:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { buyTicket, stripeWebhook, createCheckoutSession };

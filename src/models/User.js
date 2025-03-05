@@ -13,11 +13,28 @@ const userSchema = new mongoose.Schema({
   passwordResetExpiry: Date,
   tickets: [
     {
-      movie: { type: mongoose.Schema.Types.ObjectId, ref: "Movie" },
-      seatNumber: String,
-      price: Number,
-      paymentStatus: { type: String, enum: ["pending", "paid"], default: "pending" },
-      purchasedAt: { type: Date, default: Date.now },
+      movie: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: "Movie",
+        required: true
+      },
+      seatNumber: {
+        type: String,
+        required: true
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      paymentStatus: { 
+        type: String, 
+        enum: ["pending", "paid"], 
+        default: "pending" 
+      },
+      purchasedAt: { 
+        type: Date, 
+        default: Date.now 
+      },
     },
   ],
   isAdmin: { type: Boolean, default: false },

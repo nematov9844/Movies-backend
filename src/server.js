@@ -43,17 +43,24 @@ const authRoutes = require("./routes/auth.Routes");
 const movieRoutes = require("./routes/movie.Routes");
 const ticketRoutes = require("./routes/ticket.Routes");
 const paymentRoutes = require("./routes/paymet.Routes");
-
+const sessionRoutes = require("./routes/session.Routes");
 // const swaggerSpec = require("./config/swager");
 const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // === MIDDLEWARE'lar ===
-app.use(cors({ 
-  origin: [process.env.FRONTEND_URL, "http://localhost:5173","https://movies-frontend-8.vercel.app"],
+// app.use(cors({ 
+//   origin: [process.env.FRONTEND_URL, "http://localhost:5173","https://movies-frontend-8.vercel.app"],
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
+app.use(cors({
+  origin: "*", // Hamma domenlarga ruxsat
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -69,6 +76,7 @@ app.use("/api/movies", movieRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/wishlist", require("./routes/wishlist.Routes"));
+app.use("/api/sessions", sessionRoutes);
 app.get("/", (req, res) => {
   res.send("🎬 Movie App API ishlayapti! 🚀");
 });

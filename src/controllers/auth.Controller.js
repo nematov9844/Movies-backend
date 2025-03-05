@@ -207,4 +207,44 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, verifyEmail, getMe };
+
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, email, avatar } = req.body;
+
+        // Foydalanuvchini bazadan topamiz
+        let user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+        }
+
+        // Faqat ruxsat berilgan maydonlarni yangilash
+        if (name) user.name = name;
+        if (avatar) user.avatar = avatar;
+
+        // Email o‘zgartirilsa, tasdiqlashni qaytadan talab qilish
+        if (email && email !== user.email) {
+            user.email = email;
+            user.isVerified = false; // Qayta tasdiqlash kerak
+            user.verifyToken = Math.random().toString(36).substring(2); // Yangi token generatsiya qilish
+            user.verifyTokenExpiry = Date.now() + 3600000; // 1 soat
+        }
+
+        // **Parolni bu funksiya orqali o‘zgartirishga ruxsat yo‘q!**
+        if (req.body.password) {
+            return res.status(400).json({ message: "Parolni bu yerdan o‘zgartirib bo‘lmaydi" });
+        }
+
+        await user.save(); // Yangilangan ma'lumotlarni saqlaymiz
+
+        res.json({ message: "Profil yangilandi", user });
+    } catch (error) {
+        res.status(500).json({ message: "Serverda xatolik", error: error.message });
+    }
+};
+
+
+
+module.exports = { registerUser, loginUser, verifyEmail, getMe, updateProfile};

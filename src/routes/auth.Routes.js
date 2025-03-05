@@ -1,7 +1,6 @@
 const express = require("express");
-const { registerUser, loginUser, verifyEmail, getMe } = require("../controllers/auth.Controller");
+const { registerUser, loginUser, verifyEmail, getMe, updateProfile } = require("../controllers/auth.Controller");
 const { protect } = require("../middlewares/authMiddleware");
-
 
 const router = express.Router();
 /**
@@ -114,5 +113,39 @@ router.get("/verify-email/:token", verifyEmail);
  *         description: "Foydalanuvchi topilmadi"
  */
 router.get("/me", protect, getMe);
+/**
+ * @swagger
+ * /api/auth/me:
+ *   patch:
+ *     summary: "Foydalanuvchi profilini yangilash"
+ *     description: "Joriy foydalanuvchi o‘z profil ma‘lumotlarini yangilashi mumkin"
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: "Yangi ism"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: "Yangi email"
+ *     responses:
+ *       200:
+ *         description: "Profil muvaffaqiyatli yangilandi"
+ *       400:
+ *         description: "Xato so‘rov"
+ *       401:
+ *         description: "Avtorizatsiya xatosi"
+ *       404:
+ *         description: "Foydalanuvchi topilmadi"
+ */
+router.post("/me", protect, updateProfile); // Foydalanuvchini yangilash marshruti qo'shildi
 
 module.exports = router;

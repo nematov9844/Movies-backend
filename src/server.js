@@ -49,7 +49,7 @@ const app = express();
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // === MIDDLEWARE'lar ===
 app.use(cors({ 
-  origin: [process.env.FRONTEND_URL, "http://localhost:3000"],
+  origin: [process.env.FRONTEND_URL, "http://localhost:5173","https://movies-frontend-8.vercel.app"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

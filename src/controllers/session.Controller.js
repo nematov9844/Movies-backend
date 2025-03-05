@@ -73,6 +73,8 @@ const getSessionById = async (req, res) => {
 
     // Avval movie'ni tekshiramiz
     const movie = await Movie.findById(req.params.id);
+    console.log("Movie topildi:", movie ? "Ha" : "Yo'q");
+
     if (movie) {
       // Agar bu movie ID bo'lsa, shu movie uchun barcha session'larni qaytaramiz
       const sessions = await Session.find({ movie: req.params.id })
@@ -82,9 +84,11 @@ const getSessionById = async (req, res) => {
         })
         .sort({ startTime: 1 });
 
-      return res.json({
+      console.log("Movie uchun topilgan sessiyalar:", sessions.length);
+
+      return res.status(200).json({
         success: true,
-        sessions
+        sessions: sessions
       });
     }
 
@@ -95,8 +99,9 @@ const getSessionById = async (req, res) => {
         select: 'title duration posterUrl genre description releaseDate'
       });
 
+    console.log("Session topildi:", session ? "Ha" : "Yo'q");
+
     if (!session) {
-      console.log("Session topilmadi");
       return res.status(404).json({ 
         success: false,
         message: "Seans topilmadi" 
@@ -115,19 +120,22 @@ const getSessionById = async (req, res) => {
         number: seat.number,
         isBooked: seat.isBooked
       })),
+      duration: session.duration,
       createdAt: session.createdAt,
       updatedAt: session.updatedAt
     };
 
     console.log("Formatlanagan session:", formattedSession);
 
-    res.json({
+    // Status 200 bilan javob qaytarish
+    return res.status(200).json({
       success: true,
       session: formattedSession
     });
+
   } catch (error) {
     console.error("Session olishda xatolik:", error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       message: "Server xatosi",
       error: error.message 

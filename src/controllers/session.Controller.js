@@ -72,9 +72,7 @@ const getSessionById = async (req, res) => {
     }
 
     // Movie ma'lumotlarini olish
-    const movie = await Movie.findById(req.params.id);
-    console.log("Topilgan movie:", movie);
-
+    const movie = await Movie.findById(req.params.id).lean();
     if (!movie) {
       return res.status(404).json({
         success: false,
@@ -82,53 +80,19 @@ const getSessionById = async (req, res) => {
       });
     }
 
-    // Query'ni tekshirish
-    const query = { movie: new mongoose.Types.ObjectId(req.params.id) };
-    console.log("Session qidirish uchun query:", query);
-
-    // Collection nomini tekshirish
-    console.log("Collections:", Object.keys(mongoose.connection.collections));
-    console.log("Sessions collection:", mongoose.connection.collections.sessions);
-
-    // To'g'ridan-to'g'ri MongoDB query
-    const rawSessions = await mongoose.connection.db.collection('sessions')
-      .find({ movie: req.params.id }).toArray();
-    console.log("MongoDB'dan sessions:", rawSessions);
-
-    // Mongoose orqali qidirish
-    const sessions = await Session.find(query).lean();
-    console.log("Mongoose orqali topilgan sessions:", sessions);
-
+    // Sessions qidirish (movie id bo‘yicha)
+    const sessions = await Session.find({ movie: req.params.id }).lean();
+    
     // Response'ni tayyorlash
-    const response = {
+    return res.status(200).json({
       success: true,
       data: {
-        movie: {
-          _id: movie._id,
-          title: movie.title,
-          duration: movie.duration,
-          posterUrl: movie.posterUrl,
-          genre: movie.genre,
-          description: movie.description,
-          releaseDate: movie.releaseDate
-        },
-        sessions: sessions.map(session => ({
-          _id: session._id,
-          hall: session.hall,
-          date: session.date,
-          time: session.time,
-          price: session.price,
-          availableSeats: session.availableSeats,
-          totalSeats: session.totalSeats
-        }))
+        movie: movie,
+        sessions: sessions
       }
-    };
-
-    return res.status(200).json(response);
-
+    });
   } catch (error) {
     console.error("Ma'lumotlarni olishda xatolik:", error);
-    console.error("Xato stack:", error.stack);
     return res.status(500).json({ 
       success: false,
       message: "Server xatosi",
@@ -136,6 +100,7 @@ const getSessionById = async (req, res) => {
     });
   }
 };
+
 
 // 🔹 Seansni yangilash
 const updateSession = async (req, res) => {

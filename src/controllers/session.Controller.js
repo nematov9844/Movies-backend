@@ -76,19 +76,48 @@ const getSessionById = async (req, res) => {
     console.log("Movie topildi:", movie ? "Ha" : "Yo'q");
 
     if (movie) {
-      // Agar bu movie ID bo'lsa, shu movie uchun barcha session'larni qaytaramiz
-      const sessions = await Session.find({ movie: req.params.id })
-        .populate({
-          path: 'movie',
-          select: 'title duration posterUrl genre description releaseDate'
-        })
-        .sort({ startTime: 1 });
+      // Debug uchun
+      console.log("Movie ID:", movie._id);
+      console.log("Movie ID (string):", movie._id.toString());
 
-      console.log("Movie uchun topilgan sessiyalar:", sessions.length);
+      // Sessiyalarni qidirish
+      const sessions = await Session.find({ 
+        movie: new mongoose.Types.ObjectId(movie._id) 
+      })
+      .populate({
+        path: 'movie',
+        select: 'title duration posterUrl genre description releaseDate'
+      })
+      .sort({ startTime: 1 });
+
+      console.log("Query:", { movie: movie._id });
+      console.log("Topilgan sessiyalar:", sessions);
+      console.log("Movie uchun topilgan sessiyalar soni:", sessions.length);
+
+      // MongoDB'da to'g'ridan-to'g'ri tekshirish
+      const rawSessions = await Session.find({ movie: movie._id }).lean();
+      console.log("Raw sessions:", rawSessions);
 
       return res.status(200).json({
         success: true,
-        sessions: sessions
+        movie: {
+          _id: movie._id,
+          title: movie.title,
+          duration: movie.duration,
+          posterUrl: movie.posterUrl,
+          genre: movie.genre,
+          description: movie.description,
+          releaseDate: movie.releaseDate
+        },
+        sessions: sessions.map(session => ({
+          _id: session._id,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          hall: session.hall,
+          price: session.price,
+          availableSeats: session.availableSeats,
+          duration: session.duration
+        }))
       });
     }
 

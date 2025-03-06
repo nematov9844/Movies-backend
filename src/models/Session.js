@@ -40,4 +40,7 @@ sessionSchema.virtual('duration').get(function() {
   return Math.round((this.endTime - this.startTime) / (1000 * 60)); // Minutlarda
 });
 
+// Index qo'shamiz
+sessionSchema.index({ movie: 1 });
+
 module.exports = mongoose.model("Session", sessionSchema);

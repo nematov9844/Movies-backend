@@ -71,61 +71,27 @@ const getSessionById = async (req, res) => {
       });
     }
 
-    // Birinchi session sifatida qidiramiz
-    const session = await Session.findById(req.params.id)
-      .populate({
-        path: 'movie',
-        select: 'title duration posterUrl genre description releaseDate'
-      });
-
-    // Agar session topilsa, uni qaytaramiz
-    if (session) {
-      console.log("Session topildi");
-      const formattedSession = {
-        _id: session._id,
-        movie: session.movie,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        hall: session.hall,
-        price: session.price,
-        availableSeats: session.availableSeats.map(seat => ({
-          number: seat.number,
-          isBooked: seat.isBooked
-        })),
-        duration: session.duration,
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt
-      };
-
-      return res.status(200).json({
-        success: true,
-        type: 'session',
-        data: formattedSession
-      });
-    }
-
-    // Agar session topilmasa, movie sifatida qidiramiz
-    const sessions = await Session.find({ movie: req.params.id })
-      .populate({
-        path: 'movie',
-        select: 'title duration posterUrl genre description releaseDate'
-      })
-      .sort({ startTime: 1 });
-
-    console.log("Movie uchun topilgan sessiyalar soni:", sessions.length);
-
     // Movie ma'lumotlarini olish
-    const movie = await Movie.findById(req.params.id);
+    const movie = await Movie.findById(req.params.id)
+      .select('title duration posterUrl genre description releaseDate');
+
     if (!movie) {
       return res.status(404).json({
         success: false,
-        message: "Seans yoki film topilmadi"
+        message: "Film topilmadi"
       });
     }
 
-    return res.status(200).json({
+    // Shu movie uchun barcha sessiyalarni olish
+    const sessions = await Session.find({ movie: req.params.id })
+      .sort({ startTime: 1 });
+
+    console.log("Film:", movie.title);
+    console.log("Sessiyalar soni:", sessions.length);
+
+    // Response'ni tayyorlash
+    const response = {
       success: true,
-      type: 'movie',
       data: {
         movie: {
           _id: movie._id,
@@ -142,11 +108,16 @@ const getSessionById = async (req, res) => {
           endTime: session.endTime,
           hall: session.hall,
           price: session.price,
-          availableSeats: session.availableSeats,
-          duration: session.duration
+          availableSeats: session.availableSeats.map(seat => ({
+            number: seat.number,
+            isBooked: seat.isBooked
+          })),
+          duration: Math.round((session.endTime - session.startTime) / (1000 * 60))
         }))
       }
-    });
+    };
+
+    return res.status(200).json(response);
 
   } catch (error) {
     console.error("Ma'lumotlarni olishda xatolik:", error);

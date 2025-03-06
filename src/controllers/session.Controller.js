@@ -72,8 +72,8 @@ const getSessionById = async (req, res) => {
     }
 
     // Movie ma'lumotlarini olish
-    const movie = await Movie.findById(req.params.id)
-      .select('title duration posterUrl genre description releaseDate');
+    const movie = await Movie.findById(req.params.id);
+    console.log("Topilgan movie:", movie);
 
     if (!movie) {
       return res.status(404).json({
@@ -82,13 +82,22 @@ const getSessionById = async (req, res) => {
       });
     }
 
-    // Shu movie uchun barcha sessiyalarni olish
-    const sessions = await Session.find({ 
-      movie: new mongoose.Types.ObjectId(req.params.id) 
-    }).sort({ date: 1, time: 1 });
+    // Query'ni tekshirish
+    const query = { movie: new mongoose.Types.ObjectId(req.params.id) };
+    console.log("Session qidirish uchun query:", query);
 
-    console.log("Film:", movie.title);
-    console.log("Sessiyalar soni:", sessions.length);
+    // Collection nomini tekshirish
+    console.log("Collections:", Object.keys(mongoose.connection.collections));
+    console.log("Sessions collection:", mongoose.connection.collections.sessions);
+
+    // To'g'ridan-to'g'ri MongoDB query
+    const rawSessions = await mongoose.connection.db.collection('sessions')
+      .find({ movie: req.params.id }).toArray();
+    console.log("MongoDB'dan sessions:", rawSessions);
+
+    // Mongoose orqali qidirish
+    const sessions = await Session.find(query).lean();
+    console.log("Mongoose orqali topilgan sessions:", sessions);
 
     // Response'ni tayyorlash
     const response = {
@@ -119,6 +128,7 @@ const getSessionById = async (req, res) => {
 
   } catch (error) {
     console.error("Ma'lumotlarni olishda xatolik:", error);
+    console.error("Xato stack:", error.stack);
     return res.status(500).json({ 
       success: false,
       message: "Server xatosi",

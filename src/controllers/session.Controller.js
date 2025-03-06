@@ -1,6 +1,7 @@
-const Session = require("../models/Session");
 const Movie = require("../models/Movie");
 const mongoose = require("mongoose");
+const Session = require("../models/Session");
+const connectDB = require("../config/db");
 
 // 🔹 Yangi seans qo'shish
 const createSession = async (req, res) => {
@@ -40,14 +41,56 @@ const createSession = async (req, res) => {
 // 🔹 Barcha seanslarni olish
 const getAllSessions = async (req, res) => {
   try {
-    const sessions = await Session.find()
-      .populate('movie', 'title duration posterUrl')
-      .sort({ startTime: 1 });
+    // Avval barcha movie'larni olamiz
+    const movies = await Movie.find().lean();
+    
+    // Barcha sessiyalarni olamiz
+    const allSessions = await Session.find().lean();
+    
+    // Movie'larni sessiyalar bilan birlashtirish
+    const moviesWithSessions = movies.map(movie => {
+      // Shu movie'ga tegishli sessiyalarni filterlash
+      const movieSessions = allSessions.filter(
+        session => session.movie.toString() === movie._id.toString()
+      );
+
+      return {
+        _id: movie._id,
+        title: movie.title,
+        duration: movie.duration,
+        image: movie.image,
+        genre: movie.genre,
+        description: movie.description,
+        releaseDate: movie.releaseDate,
+        sessions: movieSessions.map(session => ({
+          _id: session._id,
+          hall: session.hall,
+          date: session.date,
+          time: session.time,
+          price: session.price,
+          availableSeats: session.availableSeats,
+          totalSeats: session.totalSeats
+        }))
+      };
+    });
+
+    // Faqat sessiyalari bor movie'larni qaytarish
+    const moviesWithActiveSessions = moviesWithSessions.filter(
+      movie => movie.sessions.length > 0
+    );
+
+    console.log("Movies with sessions:", 
+      moviesWithActiveSessions.map(m => ({
+        title: m.title, 
+        sessionCount: m.sessions.length
+      }))
+    );
 
     res.json({
       success: true,
-      sessions
+      data: moviesWithActiveSessions
     });
+
   } catch (error) {
     console.error("Seanslarni olishda xatolik:", error);
     res.status(500).json({ 
@@ -80,9 +123,9 @@ const getSessionById = async (req, res) => {
       });
     }
 
-    // Sessions qidirish (movie id bo‘yicha)
-    const sessions = await Session.find({ movie: req.params.id }).lean();
-    
+    // Sessions qidirish (movie id bo'yicha)
+    const sessions = await (await Session.find()).filter(item=>item.movie==req.params.id);
+
     // Response'ni tayyorlash
     return res.status(200).json({
       success: true,
@@ -100,7 +143,6 @@ const getSessionById = async (req, res) => {
     });
   }
 };
-
 
 // 🔹 Seansni yangilash
 const updateSession = async (req, res) => {

@@ -42,4 +42,5 @@ sessionSchema.virtual('startDateTime').get(function() {
 // Index qo'shamiz
 sessionSchema.index({ movie: 1 });
 
-module.exports = mongoose.model("Session", sessionSchema);
+const Session= mongoose.model("Session", sessionSchema);
+module.exports = Session; 

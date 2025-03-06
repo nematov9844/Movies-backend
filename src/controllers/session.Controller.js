@@ -83,8 +83,9 @@ const getSessionById = async (req, res) => {
     }
 
     // Shu movie uchun barcha sessiyalarni olish
-    const sessions = await Session.find({ movie: req.params.id })
-      .sort({ startTime: 1 });
+    const sessions = await Session.find({ 
+      movie: new mongoose.Types.ObjectId(req.params.id) 
+    }).sort({ date: 1, time: 1 });
 
     console.log("Film:", movie.title);
     console.log("Sessiyalar soni:", sessions.length);
@@ -104,15 +105,12 @@ const getSessionById = async (req, res) => {
         },
         sessions: sessions.map(session => ({
           _id: session._id,
-          startTime: session.startTime,
-          endTime: session.endTime,
           hall: session.hall,
+          date: session.date,
+          time: session.time,
           price: session.price,
-          availableSeats: session.availableSeats.map(seat => ({
-            number: seat.number,
-            isBooked: seat.isBooked
-          })),
-          duration: Math.round((session.endTime - session.startTime) / (1000 * 60))
+          availableSeats: session.availableSeats,
+          totalSeats: session.totalSeats
         }))
       }
     };

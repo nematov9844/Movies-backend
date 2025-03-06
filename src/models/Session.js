@@ -6,15 +6,15 @@ const sessionSchema = new mongoose.Schema({
     ref: "Movie",
     required: true
   },
-  startTime: {
-    type: Date,
-    required: true
-  },
-  endTime: {
-    type: Date,
-    required: true
-  },
   hall: {
+    type: String,
+    required: true
+  },
+  date: {
+    type: String,
+    required: true
+  },
+  time: {
     type: String,
     required: true
   },
@@ -22,22 +22,21 @@ const sessionSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  availableSeats: [{
-    number: String,
-    isBooked: {
-      type: Boolean,
-      default: false
-    }
-  }]
+  availableSeats: {
+    type: Number,
+    required: true
+  },
+  totalSeats: {
+    type: Number,
+    required: true
+  }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
 // Virtual field uchun
-sessionSchema.virtual('duration').get(function() {
-  return Math.round((this.endTime - this.startTime) / (1000 * 60)); // Minutlarda
+sessionSchema.virtual('startDateTime').get(function() {
+  return new Date(`${this.date}T${this.time}`);
 });
 
 // Index qo'shamiz

@@ -61,7 +61,7 @@ const getAllSessions = async (req, res) => {
 // 🔹 Seansni ID bo'yicha olish
 const getSessionById = async (req, res) => {
   try {
-    console.log("So'ralgan session ID:", req.params.id);
+    console.log("So'ralgan ID:", req.params.id);
 
     // ID validatsiyasi
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -71,35 +71,62 @@ const getSessionById = async (req, res) => {
       });
     }
 
-    // Avval movie'ni tekshiramiz
-    const movie = await Movie.findById(req.params.id);
-    console.log("Movie topildi:", movie ? "Ha" : "Yo'q");
+    // Birinchi session sifatida qidiramiz
+    const session = await Session.findById(req.params.id)
+      .populate({
+        path: 'movie',
+        select: 'title duration posterUrl genre description releaseDate'
+      });
 
-    if (movie) {
-      // Debug uchun
-      console.log("Movie ID:", movie._id);
-      console.log("Movie ID (string):", movie._id.toString());
+    // Agar session topilsa, uni qaytaramiz
+    if (session) {
+      console.log("Session topildi");
+      const formattedSession = {
+        _id: session._id,
+        movie: session.movie,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        hall: session.hall,
+        price: session.price,
+        availableSeats: session.availableSeats.map(seat => ({
+          number: seat.number,
+          isBooked: seat.isBooked
+        })),
+        duration: session.duration,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt
+      };
 
-      // Sessiyalarni qidirish
-      const sessions = await Session.find({ 
-        movie: new mongoose.Types.ObjectId(movie._id) 
-      })
+      return res.status(200).json({
+        success: true,
+        type: 'session',
+        data: formattedSession
+      });
+    }
+
+    // Agar session topilmasa, movie sifatida qidiramiz
+    const sessions = await Session.find({ movie: req.params.id })
       .populate({
         path: 'movie',
         select: 'title duration posterUrl genre description releaseDate'
       })
       .sort({ startTime: 1 });
 
-      console.log("Query:", { movie: movie._id });
-      console.log("Topilgan sessiyalar:", sessions);
-      console.log("Movie uchun topilgan sessiyalar soni:", sessions.length);
+    console.log("Movie uchun topilgan sessiyalar soni:", sessions.length);
 
-      // MongoDB'da to'g'ridan-to'g'ri tekshirish
-      const rawSessions = await Session.find({ movie: movie._id }).lean();
-      console.log("Raw sessions:", rawSessions);
+    // Movie ma'lumotlarini olish
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) {
+      return res.status(404).json({
+        success: false,
+        message: "Seans yoki film topilmadi"
+      });
+    }
 
-      return res.status(200).json({
-        success: true,
+    return res.status(200).json({
+      success: true,
+      type: 'movie',
+      data: {
         movie: {
           _id: movie._id,
           title: movie.title,
@@ -118,52 +145,11 @@ const getSessionById = async (req, res) => {
           availableSeats: session.availableSeats,
           duration: session.duration
         }))
-      });
-    }
-
-    // Agar movie topilmasa, session sifatida qidiramiz
-    const session = await Session.findById(req.params.id)
-      .populate({
-        path: 'movie',
-        select: 'title duration posterUrl genre description releaseDate'
-      });
-
-    console.log("Session topildi:", session ? "Ha" : "Yo'q");
-
-    if (!session) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Seans topilmadi" 
-      });
-    }
-
-    // Session ma'lumotlarini formatlash
-    const formattedSession = {
-      _id: session._id,
-      movie: session.movie,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      hall: session.hall,
-      price: session.price,
-      availableSeats: session.availableSeats.map(seat => ({
-        number: seat.number,
-        isBooked: seat.isBooked
-      })),
-      duration: session.duration,
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt
-    };
-
-    console.log("Formatlanagan session:", formattedSession);
-
-    // Status 200 bilan javob qaytarish
-    return res.status(200).json({
-      success: true,
-      session: formattedSession
+      }
     });
 
   } catch (error) {
-    console.error("Session olishda xatolik:", error);
+    console.error("Ma'lumotlarni olishda xatolik:", error);
     return res.status(500).json({ 
       success: false,
       message: "Server xatosi",
